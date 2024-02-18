@@ -5,6 +5,7 @@ def print_error(error: str):
     print("\033[91mError: Could not process the file. There are existing errors.\033[0m")
     if not isinstance(error, dict):
         print("\033[91m" + error + "\033[0m")
+    print("\033[91m" + "FALSE" + "\033[0m")
     sys.exit()
 
 def are_there_known_errors(tokens: dict) -> bool:
@@ -150,9 +151,10 @@ def lexer(file_path: str):
                 sys.exit()
             tokenizer(expression, tokens)
         print("\033[92mSuccess: No errors found. The file was processed successfully.\033[0m")
+        print("\033[92m" + "TRUE" + "\033[0m")
     except Exception as _: # If there is an error we print the error
         print("\033[91mFatal: An error occurred while processing the file. Please check the file and try again.\033[0m")
-
+        print("\033[91m" + "FALSE" + "\033[0m")
 
 
 
