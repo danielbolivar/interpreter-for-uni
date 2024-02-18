@@ -58,25 +58,39 @@ def is_variable_declared(variable: str, tokens: dict) -> bool:
 def is_identifier(string: str) -> bool:
     return any(character.isalpha() for character in string)
 
-def is_constant_c(expression: str, grammar: dict) -> bool:
-    return expression in grammar['constant_c']
+def is_constant_c(expression: str, grammar: dict, tokens:dict) -> bool:
+    return expression in grammar['constant_c'] or get_value_id(expression, tokens, grammar["constant_c"])
 
-def is_constant_dir(expression: str, grammar: dict) -> bool:
-    return expression in grammar['constant_dir']
+def get_value_id(expression: str, tokens: dict, check_place:dict) -> int:
+    # Check if the expression is a variable and if its value exists in check_place
+    if is_variable_declared(expression, tokens):
+        if (expression + "__local__") in tokens['variables']:
+            value = tokens['variables'][expression + "__local__"]
+        else:
+            value = tokens['variables'][expression]
+        if value[0] in check_place:
+            return True
 
-def is_constant_rotate(expression: str, grammar: dict) -> bool:
-    return expression in grammar['constant_rotate']
 
-def is_constant(expression: str, grammar: dict) -> bool:
-    return expression in grammar['constant']
 
-def is_keyword(expression: str, grammar: dict) -> bool:
+    return False
+
+def is_constant_dir(expression: str, grammar: dict, tokens:dict) -> bool:
+    return expression in grammar['constant_dir'] or get_value_id(expression, tokens, grammar["constant_dir"])
+
+def is_constant_rotate(expression: str, grammar: dict, tokens: dict) -> bool:
+    return expression in grammar['constant_rotate'] or get_value_id(expression, tokens, grammar["constant_rotate"])
+
+def is_constant(expression: str, grammar: dict, tokens:dict) -> bool:
+    return expression in grammar['constant'] or get_value_id(expression, tokens, grammar["constant"])
+
+def is_keyword(expression: str, grammar: dict, tokens: dict) -> bool:
     # This mean is eaither a reserved word or any kind of constant
-    if is_reserved_word(expression, grammar) or is_constant(expression, grammar) or is_constant_c(expression, grammar) or is_constant_dir(expression, grammar) or is_constant_rotate(expression, grammar) or is_ballons_chips(expression, grammar):
+    if is_reserved_word(expression, grammar) or is_constant(expression, grammar,tokens) or is_constant_c(expression, grammar, tokens) or is_constant_dir(expression, grammar, tokens) or is_constant_rotate(expression, grammar, tokens) or is_balloons_chips(expression, grammar, tokens):
         return True
 
-def is_ballons_chips(expression: str, grammar: dict) -> bool:
-    return expression in grammar['ballons_chips']
+def is_balloons_chips(expression: str, grammar: dict, tokens: dict) -> bool:
+    return expression in grammar['balloons_chips'] or get_value_id(expression, tokens, grammar["balloons_chips"])
 
 # Process functions
 
@@ -156,7 +170,7 @@ def process_value_id(expression: list, tokens: dict, grammar: dict):
             return
         else:
             tokens['known_errors'] = f'Error: "{expression}" is not a number or an existing variable.'
-    elif is_constant(expression, grammar):
+    elif is_constant(expression, grammar, tokens):
         return
     else:
         var = try_cast_to_int(expression)
@@ -182,13 +196,15 @@ def process_condition(expression: list, tokens: dict, grammar: dict):
         "can-put?": 3,
         "can-pick?": 3,
         "can-move?": 2,
-        "isZero?": 2,
+        "iszero?": 2,
         "not": 2
     }
 
     def not_acceptable_argument(expression: str):
         tokens['known_errors'] = f'Error: "{expression}" is not an acceptable argument.'
-
+    if len(expression) == 0:
+        tokens['known_errors'] = 'Error: did not receive any arguments.'
+        return
     if expression[0] == "not":
         process_condition(expression[1], tokens, grammar)
     elif len(expression) != accepted_lengths[expression[0]]:
@@ -196,20 +212,22 @@ def process_condition(expression: list, tokens: dict, grammar: dict):
         tokens['known_errors'] = f'Error: "{expression[0]}" has to have {accepted_lengths[expression[0]] - 1} arguments. You gave {len(expression) - 1} arguments.'
     else:
         if expression[0] == "facing?":
-            if not is_constant_c(expression[1], grammar):
+            if not is_constant_c(expression[1], grammar, tokens):
                 not_acceptable_argument(expression[1])
         elif expression[0] == "can-put?":
-            if is_ballons_chips(expression[1], grammar):
+            if is_balloons_chips(expression[1], grammar, tokens):
                 process_value_id(expression[2], tokens, grammar)
             else:
                 not_acceptable_argument(expression[1])
         elif expression[0] == "can-pick?":
-            if is_ballons_chips(expression[1], grammar):
+            if is_balloons_chips(expression[1], grammar, tokens):
                 process_value_id(expression[2], tokens, grammar)
-        elif expression[0] == "can-move?":
-            if not is_constant_c(expression[1], grammar):
+            else:
                 not_acceptable_argument(expression[1])
-        elif expression[0] == "isZero?":
+        elif expression[0] == "can-move?":
+            if not is_constant_c(expression[1], grammar, tokens):
+                not_acceptable_argument(expression[1])
+        elif expression[0] == "iszero?":
             process_value_id(expression[1], tokens, grammar)
 
 def process_function_call(expression: list, tokens: dict, grammar: dict):
@@ -245,21 +263,21 @@ def process_action(expression: list, tokens: dict, grammar: dict):
         process_value_id(expression[1], tokens, grammar)
 
     def process_turn(expression: list):
-        if not is_constant_rotate(expression[1], grammar):
+        if not is_constant_rotate(expression[1], grammar, tokens):
             tokens['known_errors'] = f'Error: "{expression[1]}" is not an acceptable argument for "turn".'
 
     def process_face(expression: list):
-        if not is_constant_c(expression[1], grammar):
+        if not is_constant_c(expression[1], grammar, tokens):
             tokens['known_errors'] = f'Error: "{expression[1]}" is not an acceptable argument for "face".'
 
     def process_put(expression: list):
-        if not is_ballons_chips(expression[1], grammar):
+        if not is_balloons_chips(expression[1], grammar, tokens):
             tokens['known_errors'] = f'Error: "{expression[1]}" is not an acceptable argument for "put".'
         else:
             process_value_id(expression[2], tokens, grammar)
 
     def process_pick(expression: list):
-        if not is_ballons_chips(expression[1], grammar):
+        if not is_balloons_chips(expression[1], grammar, tokens):
             tokens['known_errors'] = f'Error: "{expression[1]}" is not an acceptable argument for "pick".'
         else:
             process_value_id(expression[2], tokens, grammar)
@@ -267,18 +285,18 @@ def process_action(expression: list, tokens: dict, grammar: dict):
 
     def process_move_dir(expression: list):
         process_value_id(expression[1], tokens, grammar)
-        if not is_constant_dir(expression[2], grammar):
+        if not is_constant_dir(expression[2], grammar, tokens):
             tokens['known_errors'] = f'Error: "{expression[2]}" is not an acceptable argument for "move-dir".'
 
     def process_move_face(expression: list):
         process_value_id(expression[1], tokens, grammar)
-        if not is_constant_c(expression[2], grammar):
+        if not is_constant_c(expression[2], grammar, tokens):
             tokens['known_errors'] = f'Error: "{expression[2]}" is not an acceptable argument for "move-face".'
 
     def process_run_dirs(expression: list):
         if len(expression) == 1:
             tokens['known_errors'] = 'Error: "run-dirs" has to have at least one argument.'
-        if not all(is_constant_dir(arg, grammar) for arg in expression[1:]):
+        if not all(is_constant_dir(arg, grammar, tokens) for arg in expression[1:]):
             tokens['known_errors'] = 'Error: "run-dirs" only accepts directions as arguments.'
 
     if expression[0] == "run-dirs":
@@ -304,40 +322,55 @@ def process_action(expression: list, tokens: dict, grammar: dict):
             process_skip(expression)
 
 def process_line(expression, tokens: dict, grammar: dict):
+
     if expression[0] in grammar['action']:
         process_action(expression, tokens, grammar)
-    if expression[0] in grammar['reserved_words']:
+    elif expression[0] in grammar['reserved_words']:
         process(expression, tokens)
+    elif expression[0] in tokens['functions']:
+        process_function_call(expression, tokens, grammar)
+    elif expression[0] in grammar['condition']:
+        process_condition(expression, tokens, grammar)
     else:
         tokens['known_errors'] = f'Error: "{expression[0]}" command could not be recognized.'
 
 def process_defun(expression: list, tokens: dict, grammar: dict):
     if len(expression) > 3:
         if is_identifier(expression[1]):
+            if expression[2] == []:
+                tokens['functions'][expression[1]] = []
             tokens['functions'][expression[1]] = expression[2]
 
-            if expression[2] != []:
-                # We create a new scope for the function
+            # We create a new scope for the function
 
-                create_scope(tokens)
-                scope = inner_scope(tokens)
-                for arg in expression[2]:
+            create_scope(tokens)
+            for arg in expression[2]:
 
-                    if is_reserved_word(arg, grammar):
-                        tokens['known_errors'] = f'Error: "{arg}" is a reserved word. You cannot declare a function variable with a reserved word.'
+                if is_reserved_word(arg, grammar):
+                    tokens['known_errors'] = f'Error: "{arg}" is a reserved word. You cannot declare a function variable with a reserved word.'
 
-                    var_name = arg + "__local__"
-                    create_variable(["None", var_name, "None__local__"], tokens, grammar)
+                var_name = arg + "__local__"
+                create_variable(["None", var_name, "None__local__"], tokens, grammar)
 
-                # Now we process the rest of the function as a block
-                block = expression[3:]
-                process_block(block, tokens, grammar)
-                # We break the scope
-                break_scope(tokens)
+            # Now we process the rest of the function as a block
+            block = expression[3:]
+            process_block(block, tokens, grammar)
+            # We break the scope
+            break_scope(tokens)
         else:
             tokens['known_errors'] = f'Error: "{expression[1]}" is not a valid function name.'
     else:
         tokens['known_errors'] = f'Error: "defun" has to have at least three arguments. You gave {len(expression) - 1} arguments.'
+
+def handle_nested_expression(expression: list, tokens: dict, grammar: dict):
+    if isinstance(expression[0],list) and len(expression) > 1:
+        process_block(expression, tokens, grammar)
+    if len(expression) == 1 and isinstance(expression[0], list):
+        expression = expression[0]
+        if isinstance(expression[0], list):
+            expression = expression[0]
+            return handle_nested_expression(expression, tokens, grammar)
+    return expression
 
 def process(expression: str, tokens: dict):
     grammar = {
@@ -374,7 +407,7 @@ def process(expression: str, tokens: dict):
             ":west",
             "None__local__"
         },
-        "ballons_chips": {
+        "balloons_chips": {
             ":balloons",
             ":chips",
             "None__local__"
@@ -391,7 +424,7 @@ def process(expression: str, tokens: dict):
             "myxpos",
             "myypos",
             "mychips",
-            "myballons",
+            "myballoons",
             "balloonshere",
             "chipshere",
             "spaces",
@@ -423,8 +456,8 @@ def process(expression: str, tokens: dict):
         "skip": ["value_id"],
         "turn": ["constant_rotate"],
         "face": ["constant_c"],
-        "put": ["ballons_chips", "value_id"],
-        "pick": ["ballons_chips", "value_id"],
+        "put": ["balloons_chips", "value_id"],
+        "pick": ["balloons_chips", "value_id"],
         "move_dir": ["value_id", "constant_dir"],
         "run-dirs": [],
         "move-face": ["value_id", "constant_c"],
@@ -437,25 +470,24 @@ def process(expression: str, tokens: dict):
 
     }
 
-
     # Organizes the expressions for the tokenizer
-    if type(expression) is str:
+    if isinstance(expression, str):
         expression = expression.split(" ")
 
-    if isinstance(expression[0], list):
-        expression = expression[0]
-    if expression == "":
+    if expression[0] == "":
         return
     try:
         if expression[0][0] == "(":
             expression[0] = expression[0][1:]
-        if expression[-1][-1] == ")":
-            expression[-1] = expression[-1][:-1]
         if expression[0] == "":
             expression = expression[1:]
+        if isinstance(expression[-1], str) and expression[-1][-1] == ")":
+            expression[-1] = expression[-1][:-1]
     except IndexError:
         print_error("Error: There is an error in the expression.")
         return
+
+    expression = handle_nested_expression(expression, tokens, grammar)
 
     if are_there_known_errors(tokens):
         print_error(tokens['known_errors'])
@@ -478,9 +510,10 @@ def process(expression: str, tokens: dict):
     elif expression[0] in grammar['action']:
         process_action(expression, tokens, grammar)
 
-    elif is_keyword(expression[0], grammar):
+    elif is_keyword(expression[0], grammar, tokens):
         return
     elif expression[0] in tokens['functions']:
         process_function_call(expression, tokens, grammar)
     else:
+        print(expression)
         print_error(f'Error: "{expression[0]}" command could not be recognized.')

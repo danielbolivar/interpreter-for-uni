@@ -69,7 +69,6 @@ def process_text(text: str, tokens: dict):
     # We iterate through the text and separate the expressions. We do this by counting the parenthesis.
     # We also remove doble spaces
     for character in text:
-
         character = character.lower()
 
         if open_parenthesis == close_parenthesis and open_parenthesis != 0 and close_parenthesis != 0:
@@ -97,7 +96,6 @@ def process_text(text: str, tokens: dict):
             open_parenthesis += 1
         elif character == ')':
             close_parenthesis += 1
-
    # if expressions[0] in tokens['reserved_words']:
 
     # Check if there are any open parenthesis
@@ -146,13 +144,14 @@ def lexer(file_path: str):
     # The expressions are passed in lower case to the tokenizer
     try:
         for expression in expressions:
+            tokenizer(expression, tokens)
             if are_there_known_errors(tokens):
                 print_error(tokens['known_errors'])
                 sys.exit()
-            tokenizer(expression, tokens)
         print("\033[92mSuccess: No errors found. The file was processed successfully.\033[0m")
         print("\033[92m" + "TRUE" + "\033[0m")
     except Exception as _: # If there is an error we print the error
+        print(f"\033[91m {_} \033[0m")
         print("\033[91mFatal: An error occurred while processing the file. Please check the file and try again.\033[0m")
         print("\033[91m" + "FALSE" + "\033[0m")
 

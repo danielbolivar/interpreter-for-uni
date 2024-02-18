@@ -1,0 +1,39 @@
+(defvar rotate 3)
+
+
+
+(if (can-move? :north) (move-dir 1 :front) (null))
+
+(
+(if (not (blocked?)) (move 1) (null))
+(turn :left)
+)
+
+(defvar one 1)
+
+(defun foo (c p)
+	(put :chips c)
+	(put :balloons p)
+	(move rotate))
+(foo 1 3)
+
+(defun goend ()
+	(defvar a 2)
+	(if (not (blocked?))
+	((move one)
+		(goend))
+	(null)))
+
+(defun fill ()
+	(repeat Spaces (if (not (isZero? myChips)) (put :chips 1) ))
+)
+
+(defun test (a b)
+	(if (not (isZero? a)) (put :chips 1) (null))
+	(if (not (isZero? b)) (put :balloons 1) (null))
+
+)
+
+(defun pickAllB ()
+	(pick :balloons balloonsHere)
+)
