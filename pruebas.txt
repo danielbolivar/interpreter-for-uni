@@ -1,0 +1,26 @@
+
+(defvar a 3)
+(defvar b a)
+(defvar c myXpos)
+(defvar d 0)
+(= d 7)
+
+(if (facing? :north) (turn :right) (null))
+
+(loop (not (not (not (blocked?)))) (skip a))
+
+(repeat b (
+	(face :south)
+	(move c)
+	(put :chips 1)
+))
+
+(defun recursion (x y z)
+	(defvar start myYpos)
+	(move-dir start :back)
+	(run-dirs :front :front :right :right)
+	(move-face z :east)
+	(if (blocked?) (if (isZero? y) (recursion z y x) (null)) (recursion x d start))
+)
+
+(recursion 1 2 n)
