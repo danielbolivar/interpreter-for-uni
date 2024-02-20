@@ -27,7 +27,3 @@
 ( pick :balloons balloonsHere ))
 
 
-( run-dirs :left :up :left :down :right )
-
-
-

@@ -22,5 +22,3 @@
 	(move-face z :east)
 	(if (blocked?) (if (isZero? y) (recursion z y x) (null)) (recursion x d start))
 )
-
-(recursion 1 2 n)
